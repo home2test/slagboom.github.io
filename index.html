@@ -1,0 +1,147 @@
+<html>
+<head>
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="connect-src 'self' data: blob: https://faas-ams3-2a2df116.doserverless.co;">
+    <link rel="icon" href="/icons/favicon.ico" sizes="any">
+    <link rel="manifest" href="manifest.webmanifest" crossorigin="use-credentials"/>
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <link rel="stylesheet" href="css/pico.min.css">
+    <meta name="mobile-web-app-capable" content="yes">
+</head>
+
+<body>
+<!--<button id="install" class="install">install</button>-->
+<button type="submit" id="install">install</button>
+<main class="container" data-theme="dark">
+    <article><h3 id="message">.</h3></article>
+    <article><label>
+
+        <input id="doorbellStatus" onclick="switchDoorbell(event)" name="terms" type="checkbox" role="switch"
+               aria-invalid="false"/>
+        deurbel aan
+    </label></article>
+
+    <article>
+        <input onclick="ringDoorbell()" value="bel aan" type="reset"></input>
+    </article>
+
+    <article>
+        <input onclick="openBarrier()" value="open slagboom" type="reset"></input>
+    </article>
+
+</main>
+<script>
+
+</script>
+
+<script>
+    const switchDoorbell = async (event) => {
+        console.log(event.target.checked);
+        let response;
+        if(event.target.checked) {
+            response= await request("deurbel_aan")
+        } else {
+            response = await request("deurbel_uit")
+        }
+        if(response === "OK") {
+            document.getElementById("message").innerHTML = "Yes, opgeslagen";
+        } else {
+            document.getElementById("message").innerHTML = "oops er gaat wat verkeerd";
+        }
+        clearMessage();
+    }
+
+    const clearMessage = () => {
+        setTimeout(() => {
+            document.getElementById("message").innerHTML = "<font color='#13171f'>.</font>"
+        }, 2000)
+    }
+
+    const ringDoorbell = async () => {
+        const out = await request("deurbel")
+        document.getElementById("message").innerHTML = out;
+        clearMessage();
+    }
+
+    const setDoorbellStatus = async () => {
+        const out = await request("deurbel_status");
+        console.log("status ")
+        const status = document.getElementById("doorbellStatus")
+        out === "aan" ? status.checked = true : status.checked = false;
+        document.getElementById("message").innerHTML = out;
+        clearMessage();
+    }
+
+
+    const openBarrier = async () => {
+        const out = await request("slagboom")
+        document.getElementById("message").innerHTML = out;
+        clearMessage();
+    }
+
+    const request = async (endpoint) => {
+        const body = `${localStorage.getItem("secret")}_${endpoint}`;
+        console.log(body)
+        const OUT = await fetch("https://faas-ams3-2a2df116.doserverless.co/api/v1/web/fn-540cfc90-6000-42cf-b4ff-eab12bed1543/default/test",
+            {
+                method: "POST",
+                cache: "no-store",
+                body: body
+            })
+        return await OUT.text();
+    }
+
+    setDoorbellStatus();
+
+</script>
+
+<script>
+    const secret = window.location.hash.substring(1);
+    if (secret) {
+        localStorage.setItem("secret", secret)
+    }
+    let installPrompt = null;
+    const installButton = document.getElementById("install");
+    window.addEventListener("beforeinstallprompt", (event) => {
+        event.preventDefault()
+        installPrompt = event;
+        console.log("event ", event)
+        installButton.style.display = "block"
+    });
+    installButton.addEventListener("click", async () => {
+        const result = await installPrompt.prompt();
+    });
+</script>
+
+<style>
+    body {
+        background: #000;
+    }
+
+    @media (max-width: 600px) {
+        body {
+            font-size: 24px;
+        }
+    }
+
+    .install {
+        display: none;
+        position: fixed;
+        width: 90vw;
+        top: 30px;
+        left: 5vw;
+
+        background-color: #1b4e0a; /* Green */
+        border: none;
+        color: white;
+        font-weight: bold;
+        padding: 15px 32px;
+        text-align: center;
+        text-decoration: none;
+        font-size: 20px;
+    }
+</style>
+
+</body>
+</html>
